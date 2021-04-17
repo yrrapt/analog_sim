@@ -73,7 +73,7 @@ class GenericSpiceInterface():
         command = "\n" + command + "\n"
 
         # remove the .end keyword and append
-        self.simulation['netlist'] = re.sub(r'\.end\n', command + "\n.end", self.simulation['netlist'])
+        self.simulation['netlist'] = re.sub(r'\.end[$\n]', command + "\n.end\n", self.simulation['netlist'])
 
 
 
@@ -251,7 +251,8 @@ class GenericSpiceInterface():
                     command += '@M.' + device + '.m' + device_type + '[' + expression + '] '
 
         # remove the .end keyword and append
-        self.simulation['netlist'] = re.sub(r'\.end$', command + "\n.end", self.simulation['netlist'])
+        # self.simulation['netlist'] = re.sub(r'\.end$', command + "\n.end", self.simulation['netlist'])
+        self.simulation['netlist'] = re.sub(r'\.end[$\n]', command + "\n.end", self.simulation['netlist'])
 
 
     def plot_op_save(self, devices, expressions, sweepvar, linewidth=1.0, alpha=1.0, 
@@ -444,6 +445,8 @@ class GenericSpiceInterface():
         else:
             print('The test has found operating point issues - please investigate further')
 
+        return test_pass
+
 
     def restart_simulation(self):
         '''
@@ -609,7 +612,7 @@ class GenericSpiceInterface():
         '''
 
         # remove the end command at the end of the netlist
-        self.simulation['netlist'] = re.sub(r'\.end\n', '', self.simulation['netlist'])
+        self.simulation['netlist'] = re.sub(r'\.end[$\n]', '', self.simulation['netlist'])
 
         # add the parameters
         self.simulation['netlist'] += '\n\n* MONTE CARLO PARAMETERS'

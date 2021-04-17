@@ -1,0 +1,36 @@
+// imports
+simulator lang=spectre
+global 0
+
+// !CONFIG-INCLUDE
+
+parameters ids=10u vbs=0 vdd=1.5 w=1u l=1u
+
+// DUT characterise
+M0 (vd vg 0 vb) !MOS w=w l=l
+
+Id (vd_ 0) isource dc=ids type=dc
+Vdd (0 vd_) vsource dc=vdd type=dc
+Vbs (0 vb) vsource dc=vbs type=dc
+Hgs (0 vg) ccvs rm=1G min=0.0 max=1.5 probe=Vdd
+Vmeas (vd_ vd) vsource dc=0 type=dc
+Hnoise (noise 0) ccvs rm=1 probe=Vmeas
+
+// analyses
+dcOp dc write="spectre.dc" maxiters=150 maxsteps=10000 annotate=status
+dcOpInfo info what=oppoint where=rawfile
+noise ( noise 0 ) noise start=1 stop=20G annotate=status 
+
+// simulator settings
+save M0:all
+simulatorOptions options psfversion="1.4.0" reltol=1e-3 vabstol=1e-6 \
+    iabstol=1e-12 temp=27 tnom=27 noiseon_type=all scalem=1.0 scale=1.0 \
+    gmin=1e-12 rforce=1 maxnotes=5 maxwarns=5 digits=5 cols=80 pivrel=1e-3 \
+    sensfile="../psf/sens.output" checklimitdest=psf 
+modelParameter info what=models where=rawfile
+element info what=inst where=rawfile
+outputParameter info what=output where=rawfile
+designParamVals info what=parameters where=rawfile
+primitives info what=primitives where=rawfile
+subckts info what=subckts where=rawfile
+saveOptions options save=allpub

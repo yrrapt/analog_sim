@@ -153,15 +153,19 @@ class Measure():
 
 
 
-    # def measure_noise(frequency, noise):
-    def measure_noise():
+    def measure_noise(frequency=None, noise=None):
+    # def measure_noise():
         '''
-            Measure the corner frequnecy, slope factor of flicker noise and the thermal noise from simulation data 
+            Measure the corner frequency, slope factor of flicker noise and the thermal noise from simulation data 
         '''
 
         # get the signals to measure
-        frequency = self.sim.get_signal('frequency', dataset='noise1')
-        noise = self.sim.get_signal('noise_spectrum', dataset='noise1')
+        if not frequency.all():
+            frequency = self.sim.get_signal('frequency', dataset='noise')
+        
+        if not noise.all():
+            noise = self.sim.get_signal('onoise_spectrum', dataset='noise')
+
         length = len(frequency)
 
         # create theoretical flicker noise

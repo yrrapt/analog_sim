@@ -6,7 +6,7 @@ import re
 import h5py
 import subprocess
 from spyci import spyci
-from PySpice.Spice.NgSpice.Shared import NgSpiceShared
+
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker
@@ -38,13 +38,7 @@ class GenericSpiceInterface():
         # store the setup information internally
         self.simulation = {}
         self.config = {}
-        self.config['simulator'] = {'executable'    :   'ngspice',
-                                    'shared'        :   True,
-                                    'silent'        :   False}
-        self.config['verbose'] = verbose
 
-        # create an ngspice shared object
-        self.ngspice = NgSpiceShared.new_instance()
 
         # if provided read in the base netlist
         if netlist_path:
@@ -83,66 +77,16 @@ class GenericSpiceInterface():
 
 
 
-    def set_parameters(self, parameters):
-        '''
-            Set parameters inside the netlist
-
-            Parameters should be passed as an array with with sub-arrays with
-            the first element parameter string and the second element a value.
-
-            ie. [['vds', 1.8], ['vbs', 0.2], ['ids', 1e-6]]
-        '''
-
-        # keep a list of the of parameter values to print to terminal
-        log_information = "New netlist parameter values: "
-
-        # different methods of changing parameters
-        if self.config['simulator']['shared']:
-
-            # loop through each parameter updating the value
-            for parameter in parameters:
-
-                if parameter[1] < 1e-6:
-                    self.ngspice.exec_command("alterparam %s=%0.20f" % (parameter[0], parameter[1]))
-                    log_information += '%s=%0.20f  ' % (parameter[0], parameter[1])
-                else:
-                    self.ngspice.exec_command("alterparam %s=%f" % (parameter[0], parameter[1]))
-                    log_information += '%s=%f  ' % (parameter[0], parameter[1])
-
-        # loop through each parameter updating the value
-        for parameter in parameters:
-
-            if parameter[1] < 1e-6:
-                sub_string = ".param %s=%0.20f" % (parameter[0], parameter[1])
-                log_information += '%s=%0.20f  ' % (parameter[0], parameter[1])
-            else:
-                sub_string = ".param %s=%f" % (parameter[0], parameter[1])
-                log_information += '%s=%f  ' % (parameter[0], parameter[1])
-            self.simulation['netlist'] = re.sub(r'\.param %s=.*' % parameter[0], sub_string, self.simulation['netlist'])
-
-        # update user
-        if self.config['verbose']:
-            print(log_information)
-
-
-
     def set_temperature(self, temp):
         '''
             Set the simulation temperature
         '''
 
-        if self.config['simulator']['shared']:
-            print(temp)
-            print("alterparam temp=%f" % temp)
-            self.ngspice.exec_command("alterparam temp=%f" % temp)
-
-        else:
-
-            # change the temperature in the netlist
-            sub_string = ".param temp=%f" % temp
-            self.simulation['netlist'] = re.sub(r'\.param temp=.*', sub_string, self.simulation['netlist'])
-            sub_string = ".temp %f" % temp
-            self.simulation['netlist'] = re.sub(r'\.temp .*', sub_string, self.simulation['netlist'])
+        # change the temperature in the netlist
+        sub_string = ".param temp=%f" % temp
+        self.simulation['netlist'] = re.sub(r'\.param temp=.*', sub_string, self.simulation['netlist'])
+        sub_string = ".temp %f" % temp
+        self.simulation['netlist'] = re.sub(r'\.temp .*', sub_string, self.simulation['netlist'])
 
         # update user
         if self.config['verbose']:
@@ -717,25 +661,20 @@ class GenericSpiceInterface():
         else:
             simulation_data = self.simulation_data
 
-        # find where the node is in the data
-        index = None
-        for data_i, data_var in enumerate(simulation_data['vars']):
-
-            if data_var['name'] == signal_name.lower():
-                index = data_i
-
-        assert index != None, 'The provided signal (%s) cannot be found in the simulation results' % signal_name
-
         # extract each data point and convert to real list
-        data = []
-        for n in range(len(simulation_data['values'])):
+        if factor != 1.0 or (complex_out==False and np.iscomplex(simulation_data[signal_name][0])):
+            data = []
+            for n in range(len(simulation_data[signal_name])):
 
-            if complex_out:
-                data.append(factor*simulation_data['values'][n][index])
-            else:
-                data.append(factor*np.real(simulation_data['values'][n][index]))
+                if complex_out:
+                    data.append(factor*simulation_data[signal_name][n])
+                else:
+                    data.append(factor*np.real(simulation_data[signal_name][n]))
 
-        return data
+            return data
+        
+        else:
+            return simulation_data[signal_name]
 
 
     def get_signals(self, signal_names, factor=1.0):

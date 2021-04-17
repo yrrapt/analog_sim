@@ -1,10 +1,11 @@
+import os
 import h5py
 import re
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
-from yaaade.spice.ngspice import NgSpiceInterface
+
 from yaaade.measure.measure import Measure
 
 class CharacteriseMos():
@@ -12,41 +13,64 @@ class CharacteriseMos():
 
     '''
 
-    def __init__(self):
+    def __init__(self, spice_interface_obj):
 
         # create the spice interface object
-        self.spice_interface_obj = NgSpiceInterface()
+        self.spice_interface_obj = spice_interface_obj
 
 
-    def measure_mos_op(self, device, w, l_list, ids=[1e-9,1e-3,10], vds=[0,1.8,11], vbs=[0,1.8,11], vgs=[0,1.8,11], type='nmos', vdd=None, temp=27, corner='tt'):
+    def _measure_individual_mos_op(self, device, config, w, l_list, 
+                                    ids=[1e-9,1e-3,10], vds=[0,1.8,11], vbs=[0,1.8,11], vgs=[0,1.8,11], 
+                                    type='nmos', vdd=None, temp=27, corner='tt'):
         '''
             Measure the operating point of an MOS
         '''
 
-        # load the characterisation bench
-        if type == 'nmos':
-            self.spice_interface_obj.read_netlist_file('nmos_characterise.spice')
+        # load the characterization bench
+        if config['simulator'] == 'spectre':
+            if type == 'nmos':
+                self.spice_interface_obj.read_netlist_file('nmos_characterise.scs')
+            else:
+                self.spice_interface_obj.read_netlist_file('pmos_characterise.scs')
         else:
-            self.spice_interface_obj.read_netlist_file('pmos_characterise.spice')
+            if type == 'nmos':
+                self.spice_interface_obj.read_netlist_file('nmos_characterise.spice')
+            else:
+                self.spice_interface_obj.read_netlist_file('pmos_characterise.spice')
 
         # set the MOS name
-        self.spice_interface_obj.simulation['netlist'] = re.sub(r'(.*)mos(.*)', r'\1'+device+r'\2', self.spice_interface_obj.simulation['netlist'])
+        self.spice_interface_obj.simulation['netlist'] = re.sub(r'(.*)!MOS(.*)', r'\1'+device+r'\2', self.spice_interface_obj.simulation['netlist'])
+
+        # add include information
+        if 'include' in config:
+
+            save_string = ''
+            for include_line in config['include']:
+                save_string += include_line + '\n'
+            self.spice_interface_obj.simulation['netlist'] = re.sub(r'// !CONFIG-INCLUDE', save_string, self.spice_interface_obj.simulation['netlist'])
+
 
         # set the temperature and corner
-        self.spice_interface_obj.set_temperature(temp)
-        self.spice_interface_obj.set_corner(corner)
+        if 'temperature' in config:
+            self.spice_interface_obj.set_temperature(temp)
+        if 'corner' in config:
+            self.spice_interface_obj.set_corner(corner)
 
         # set the maximum supply voltage
         if vdd:
             self.spice_interface_obj.set_parameters([['vdd', vdd]])
-        
+
+        # set the transistor width
+        self.spice_interface_obj.set_parameters([['w', float(w)]])
 
         # define the list of op parameters
-        op_params = ["id", "vth", "vgs", "vds", "vbs", "gm", "gds", "gmbs", "vdsat", "cgg", "cgs", "cgd", "cgb", "cbs", "cdd"]
-        save_string = ''
-        for op_param in op_params:
-            save_string += '@M.XM.m' + device + '[' + op_param + '] '
-        self.spice_interface_obj.simulation['netlist'] = re.sub(r'SAVE_TO_BE_POPULATED', save_string, self.spice_interface_obj.simulation['netlist'])
+        if 'save' in config:
+            op_params = config['save']
+            save_string = ''
+            for op_param in op_params:
+                save_string += '@M.XM.m' + device + '[' + op_param + '] '
+            self.spice_interface_obj.simulation['netlist'] = re.sub(r'SAVE_TO_BE_POPULATED', save_string, self.spice_interface_obj.simulation['netlist'])
+
 
         # create the sweep values
         vds_list = np.linspace(vds[0], vds[1], vds[2])
@@ -54,25 +78,15 @@ class CharacteriseMos():
         
         # create drain current sweep
         ids_list = np.logspace(np.log10(abs(ids[0])), np.log10(abs(vbs[1])), int(np.log10(ids[1]/ids[0])*ids[2]))
-        # vgs_list = np.logspace(np.log10(abs(vgs[0])), np.log10(abs(vgs[1])), int(np.log10(vgs[1]/vgs[0])*vgs[2]))
-        # vgs_list = np.linspace(vgs[0], vgs[1], vgs[2])
 
-        # parameters = [['vgs_max', vgs[1]], ['vgs_incr', vgs[1]/vgs[2]]]
-        # self.spice_interface_obj.set_parameters(parameters)
-        
+
         # run an initial simulation to find out how many drain current sweep values are present
-        self.spice_interface_obj.run_simulation(outputs=['op1', 'noise1'])
-        # self.spice_interface_obj.run_simulation(outputs=['dc1', 'noise1'])
-        # num = self.spice_interface_obj.simulation_data['dc1']['no_points']
+        self.spice_interface_obj.run_simulation(outputs=['op', 'noise'])
 
-        # print('num', num)
-        # num_ids = len(ids_list)
-        # num = len(vgs_list)
+        # prepopulate the results dictionary
         num = len(ids_list)
-
-        # prepopulate the reuslts dictionary
         op_values = {}
-        for param in op_params:
+        for param in self.spice_interface_obj.simulation_data['op']:
             op_values[param] = np.zeros((len(l_list), len(vds_list), len(vbs_list), num))
         op_values['noise_corner'] = np.zeros((len(l_list), len(vds_list), len(vbs_list), num))
         op_values['noise_slope'] = np.zeros((len(l_list), len(vds_list), len(vbs_list), num))
@@ -83,7 +97,6 @@ class CharacteriseMos():
             for vbs_i, vbs in enumerate(vbs_list):
                 for vds_i, vds in enumerate(vds_list):
                     for ids_i, ids in enumerate(ids_list):
-                    # for vgs_i, vgs in enumerate(vgs_list):
 
                         # update user
                         if self.spice_interface_obj.config['verbose']:
@@ -91,54 +104,37 @@ class CharacteriseMos():
                             print('Beginning new OP setting')
 
                         # modify the netlist
-                        # parameters = [['vbs', vbs], ['vds', vds], ['l', l], ['vgs', vgs]]
                         parameters = [['vbs', vbs], ['vds', vds], ['l', l], ['ids', ids]]
                         self.spice_interface_obj.set_parameters(parameters)
 
                         # run the simulation
                         # try:
-                        self.spice_interface_obj.run_simulation(outputs=['op1', 'noise1'])
-                        # self.spice_interface_obj.run_simulation(outputs=['dc1', 'noise1'])
+                        self.spice_interface_obj.run_simulation(outputs=['op', 'noise'])
 
                         # collect the op parameter values
-                        for data_i, data_var in enumerate(self.spice_interface_obj.simulation_data['op1']['vars']):
+                        for op_param in self.spice_interface_obj.simulation_data['op']:
+    
+                            # save the sweep data to the dictionary
+                            op_values[op_param][l_i][vds_i][vbs_i][ids_i] = self.spice_interface_obj.simulation_data['op'][op_param]
 
-                            # try and extract the op parameter - this will fail if the variable is something else
-                            try:
-                                op_param = data_var['name'].split('[')[1].split(']')[0]
-
-                                # extract each data point and convert to real list
-                                data_real = []
-                                for n in range(len(self.spice_interface_obj.simulation_data['op1']['values'])):
-                                    data_real.append(np.real(self.spice_interface_obj.simulation_data['op1']['values'][n][data_i]))
-
-                                # save the sweep data to the dictionary
-                                op_values[op_param][l_i][vds_i][vbs_i][ids_i] = data_real[0]
-                                # op_values[op_param][l_i][vds_i][vbs_i][vgs_i] = data_real[0]
-
-                            except IndexError:
-                                pass
+                            # print('op_param, l_i, vds_i, vbs_i, ids_i, value', op_param, l_i, vds_i, vbs_i, ids_i, self.spice_interface_obj.simulation_data['op'][op_param])
 
                         # calculate the noise parameters
-                        frequency = self.spice_interface_obj.get_signal('frequency', dataset='noise1')
-                        onoise = self.spice_interface_obj.get_signal('onoise_spectrum', dataset='noise1')
+                        frequency = self.spice_interface_obj.get_signal('frequency', dataset='noise')
+                        onoise = self.spice_interface_obj.get_signal('onoise_spectrum', dataset='noise')
                         thermal, corner_frequency, flicker_factor = Measure.measure_noise(frequency, onoise)
                         op_values['noise_corner'][l_i][vds_i][vbs_i][ids_i] = corner_frequency
                         op_values['noise_slope'][l_i][vds_i][vbs_i][ids_i] = flicker_factor
                         op_values['noise_thermal'][l_i][vds_i][vbs_i][ids_i] = thermal
-                        # op_values['noise_corner'][l_i][vds_i][vbs_i][vgs_i] = corner_frequency
-                        # op_values['noise_slope'][l_i][vds_i][vbs_i][vgs_i] = flicker_factor
-                        # op_values['noise_thermal'][l_i][vds_i][vbs_i][vgs_i] = thermal
-                        
-                        # simulation failed - most likely to MOS being in a weird region
-                        # just ignore this and move on. the point will be filled with zeros
-                        # except:
-                        #     pass
 
+        # check if the output folder exists
+        if not os.path.exists('results'):
+            os.makedirs('results')
 
         # save the data to file
         hdf_file = h5py.File('results/' + device + '.hdf5', 'w')
         for key, values in op_values.items():
+            # print('key, values', key, values)
             hdf_file.create_dataset(key, data=values)
 
         # save the width used
@@ -154,6 +150,29 @@ class CharacteriseMos():
                 indexing_group.create_dataset(index[0], (len(ascii_list),1),'S10', ascii_list)
             else:   
                 indexing_group.create_dataset(index[0], data=index[1])
+
+
+    def measure_mos_op(self, config):
+        '''
+            Measure the operating point of an MOS
+        '''
+
+        sim_config = config['config']
+        devices    = copy.deepcopy(config)
+        del devices['config']
+
+        for device in devices:
+            print('length width: ', devices[device]['l'])
+            self._measure_individual_mos_op(device,
+                                            sim_config,
+                                            devices[device]['w'], 
+                                            devices[device]['l'], 
+                                            ids=devices[device]['ids'],
+                                            vds=devices[device]['vds'],
+                                            vbs=devices[device]['vbs'],
+                                            vdd=devices[device]['vdd'],
+                                            type=devices[device]['type'])
+
 
 
 class QueryMos():
@@ -315,26 +334,26 @@ class QueryMos():
         # return self.file[parameter][index_values[2]][index_values[1]][index_values[0]]
 
 
-    # def collect_expression(self, expression, conditions):
-    #     '''
-    #         Dismantle an expression to return values
-    #     '''
+    def collect_expression(self, expression, conditions):
+        '''
+            Dismantle an expression to return values
+        '''
         
-    #     if '/' in expression:
-    #         operands = expression.split('/')
+        if '/' in expression:
+            operands = expression.split('/')
 
-    #         denominator = self.query_mos_op(operands[1], conditions)
-    #         if operands[0] == '1':
-    #             numerator   = [1.0]*len(denominator)
-    #         else:
-    #             numerator   = self.query_mos_op(operands[0], conditions)
+            denominator = self.query_mos_op(operands[1], conditions)
+            if operands[0] == '1':
+                numerator   = [1.0]*len(denominator)
+            else:
+                numerator   = self.query_mos_op(operands[0], conditions)
 
-    #         values = [numerator[_]/denominator[_] for _ in range(len(numerator))]
+            values = [numerator[_]/denominator[_] for _ in range(len(numerator))]
         
-    #     else:
-    #         values = self.query_mos_op(expression, conditions)
+        else:
+            values = self.query_mos_op(expression, conditions)
 
-    #     return values
+        return values
 
 
     def plot(self, x, y, conditions, y_log=True, extra_plot_cmd=None):

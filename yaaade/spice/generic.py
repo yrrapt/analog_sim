@@ -368,8 +368,6 @@ class GenericSpiceInterface():
         devices_switched = []
         devices_triode = []
         devices_decap = []
-        devices_cap = []
-        devices_en = []
         devices_dummy = []
         for device in devices:
             if 'sw' in device:
@@ -378,10 +376,6 @@ class GenericSpiceInterface():
                 devices_triode.append(device)
             elif 'decap' in device:
                 devices_decap.append(device)
-            elif 'cap' in device:
-                devices_cap.append(device)
-            elif 'en' in device:
-                devices_en.append(device)
             elif 'dum' in device:
                 devices_dummy.append(device)
             else:
@@ -416,11 +410,7 @@ class GenericSpiceInterface():
 
                     # some devices can be ignored if specified by the user
                     if exempt_list:
-
-                        filtered = fnmatch.filter(exempt_list, device)
-
-                        # if not device in exempt_list:
-                        if len(filtered) == 0:
+                        if not device in exempt_list:
 
                             # signal there is an error
                             test_pass = False
@@ -468,15 +458,15 @@ class GenericSpiceInterface():
         self.ngspice.exec_command("remcirc")
 
         # write the temporary netlist
-        with open('rundir/spiceinterface_temp.spice', 'w') as f:
+        with open('spiceinterface_temp.spice', 'w') as f:
             f.write(self.simulation['netlist'])
 
         # reload the circuit
         if self.config['simulator']['silent']:
             with suppress_stdout_stderr():
-                self.ngspice.source('rundir/spiceinterface_temp.spice')
+                self.ngspice.source('spiceinterface_temp.spice')
         else:
-            self.ngspice.source('rundir/spiceinterface_temp.spice')
+            self.ngspice.source('spiceinterface_temp.spice')
 
 
 
@@ -489,7 +479,7 @@ class GenericSpiceInterface():
         if self.config['simulator']['executable'] == 'ngspice':
 
             # write the temporary netlist
-            with open('rundir/spiceinterface_temp.spice', 'w') as f:
+            with open('spiceinterface_temp.spice', 'w') as f:
                 f.write(self.simulation['netlist'])
 
             # run ngspice
@@ -501,7 +491,7 @@ class GenericSpiceInterface():
 
                 # load the netlist into the 
                 if new_instance:
-                    self.ngspice.source('rundir/spiceinterface_temp.spice')
+                    self.ngspice.source('spiceinterface_temp.spice')
 
                 # run the simulation
                 if self.config['simulator']['silent']:
@@ -512,7 +502,7 @@ class GenericSpiceInterface():
 
                 # save the outputs
                 self.ngspice.exec_command("set filetype=ascii")
-                self.ngspice.exec_command("write rundir/spiceinterface_temp.raw")
+                self.ngspice.exec_command("write spiceinterface_temp.raw")
 
 
             else:
@@ -521,12 +511,12 @@ class GenericSpiceInterface():
                 os.environ["SPICE_ASCIIRAWFILE"] = "1"
 
                 # run the simulation through command line
-                bash_command = "ngspice -b -r rundir/spiceinterface_temp.raw -o rundir/spiceinterface_temp.out rundir/spiceinterface_temp.spice"
+                bash_command = "ngspice -b -r spiceinterface_temp.raw -o spiceinterface_temp.out spiceinterface_temp.spice"
                 process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
                 output, error = process.communicate()
 
                 # check if error occured
-                with open('rundir/spiceinterface_temp.out') as f:
+                with open('spiceinterface_temp.out') as f:
                     sim_log = f.read()
                     if 'fatal' in sim_log or 'aborted' in sim_log:
                         print('\033[91m')
@@ -540,9 +530,9 @@ class GenericSpiceInterface():
             if outputs:
                 self.simulation_data = {}
                 for output in outputs:
-                    self.simulation_data[output] = spyci.load_raw("rundir/spiceinterface_temp_"+output+".raw")
+                    self.read_results("spiceinterface_temp_"+output+".raw", output)
             else:
-                self.simulation_data = spyci.load_raw("rundir/spiceinterface_temp.raw")
+                self.read_results("spiceinterface_temp.raw")
 
         else:
             assert False, 'The simulator (%s) is not currently supported' % self.config['simulator']
@@ -637,13 +627,27 @@ class GenericSpiceInterface():
 
 
 
-    def read_results(self, netlist="rundir/spiceinterface_temp.raw"):
+    def read_results(self, netlist="spiceinterface_temp.raw", dataset=None):
         '''
             Read the simulation resutls from file
         '''
 
-        self.simulation_data = spyci.load_raw(netlist)
+        raw_data = spyci.load_raw(netlist)
+        simulation_data = {}
 
+        # pull out the data from the raw format into a nicer dictionary
+        # with the signal name as the key
+        for data_i, data_var in enumerate(raw_data['vars']):
+            simulation_data[data_var['name']] = []
+            for n in range(len(raw_data['values'])):
+                simulation_data[data_var['name']].append(raw_data['values'][n][data_i])
+
+        # single simulation data or multiple
+        if dataset == None:
+            self.simulation_data = simulation_data
+        else:
+            self.simulation_data = {}
+            self.simulation_data[dataset] = simulation_data
 
 
     def set_dc_sweep(self, parameter, start, end, number_steps):

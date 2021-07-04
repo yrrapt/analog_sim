@@ -1,4 +1,5 @@
-import subprocess
+import os, re, subprocess
+import numpy as np
 from spyci import spyci
 from PySpice.Spice.NgSpice.Shared import NgSpiceShared
 
@@ -97,7 +98,7 @@ class NgSpiceInterface(GenericSpiceInterface):
         '''
 
         # write the temporary netlist
-        with open('spiceinterface_temp.spice', 'w') as f:
+        with open('rundir/spiceinterface_temp.spice', 'w') as f:
             f.write(self.simulation['netlist'])
 
         # run ngspice
@@ -109,7 +110,7 @@ class NgSpiceInterface(GenericSpiceInterface):
 
             # load the netlist into the 
             if new_instance:
-                self.ngspice.source('spiceinterface_temp.spice')
+                self.ngspice.source('rundir/spiceinterface_temp.spice')
 
             # run the simulation
             if self.config['simulator']['silent']:
@@ -120,7 +121,7 @@ class NgSpiceInterface(GenericSpiceInterface):
 
             # save the outputs
             self.ngspice.exec_command("set filetype=ascii")
-            self.ngspice.exec_command("write spiceinterface_temp.raw")
+            self.ngspice.exec_command("write rundir/spiceinterface_temp.raw")
 
 
         else:
@@ -129,12 +130,12 @@ class NgSpiceInterface(GenericSpiceInterface):
             os.environ["SPICE_ASCIIRAWFILE"] = "1"
 
             # run the simulation through command line
-            bash_command = "ngspice -b -r spiceinterface_temp.raw -o spiceinterface_temp.out spiceinterface_temp.spice"
+            bash_command = "ngspice -b -r rundir/spiceinterface_temp.raw -o rundir/spiceinterface_temp.out rundir/spiceinterface_temp.spice"
             process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
             output, error = process.communicate()
 
             # check if error occured
-            with open('spiceinterface_temp.out') as f:
+            with open('rundir/spiceinterface_temp.out') as f:
                 sim_log = f.read()
                 if 'fatal' in sim_log or 'aborted' in sim_log:
                     print('\033[91m')
@@ -148,9 +149,9 @@ class NgSpiceInterface(GenericSpiceInterface):
         if outputs:
             self.simulation_data = {}
             for output in outputs:
-                self.simulation_data[output] = spyci.load_raw("spiceinterface_temp_"+output+".raw")
+                self.simulation_data[output] = spyci.load_raw("rundir/spiceinterface_temp_"+output+".raw")
         else:
-            self.simulation_data = spyci.load_raw("spiceinterface_temp.raw")
+            self.simulation_data = spyci.load_raw("rundir/spiceinterface_temp.raw")
 
 
     def set_parameters(self, parameters):
@@ -213,3 +214,43 @@ class NgSpiceInterface(GenericSpiceInterface):
                 data.append(factor*np.real(simulation_data['values'][n][index]))
 
         return data
+
+
+    def set_sim_dc(self, variable, start, stop, increment):
+        '''
+            Define a DC sweep simulation
+        '''
+
+        sim_command = '.dc %s %d %d %d' % (variable, start, stop, increment)
+        self.set_sim_command(sim_command)
+
+
+    def set_sim_tran(self, stop, step, start_save=None):
+        '''
+            Define a DC sweep simulation
+        '''
+
+        # .tran 0.001n 50n 20n
+        sim_command = '.tran %fn %fn' % (step*1e9, stop*1e9)
+
+        if start_save != None:
+            sim_command += ' %fn' % (start_save*1e9)
+
+        self.set_sim_command(sim_command)
+
+
+    # def insert_op_save(self, devices, expressions):
+    #     '''
+    #         In NGSpice a control block can be used to insert OP
+    #         save instructions for all devices
+    #     '''
+
+    #     # save operating points for all FETs
+    #     command  = '.control\n'
+    #     command += 'unset noglob\n'
+    #     command += 'save @M.*[*]\n'
+    #     command += 'set noglob\n'
+    #     command += '.endc\n'
+
+    #     # add to netlist
+    #     self.simulation['netlist'] = re.sub(r'\.end[$\n]', command + "\n.end", self.simulation['netlist'])

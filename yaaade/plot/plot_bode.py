@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
 import os, sys
-import SpiceInterface
+from yaaade.spice.generic import GenericSpiceInterface
+from yaaade.plot.plot import * 
 
 print(sys.argv[1])
 
 
 # create the object
-spice_interface_obj = SpiceInterface.SpiceInterface()
+yaaade_obj = GenericSpiceInterface()
 
 # read in the results
-spice_interface_obj.read_results(sys.argv[1])
+yaaade_obj.read_results(sys.argv[1])
 
 # plot the results
-spice_interface_obj.plot_bode('v(ac)', linewidth=1, alpha=1)
+plot_bode(yaaade_obj, 'v(ac)', linewidth=1, alpha=1)

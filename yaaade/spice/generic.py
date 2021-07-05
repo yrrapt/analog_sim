@@ -530,9 +530,9 @@ class GenericSpiceInterface():
             if outputs:
                 self.simulation_data = {}
                 for output in outputs:
-                    self.read_results("spiceinterface_temp_"+output+".raw", output)
+                    self.read_results("rundir/spiceinterface_temp_"+output+".raw", output)
             else:
-                self.read_results("spiceinterface_temp.raw")
+                self.read_results("rundir/spiceinterface_temp.raw")
 
         else:
             assert False, 'The simulator (%s) is not currently supported' % self.config['simulator']
@@ -680,19 +680,19 @@ class GenericSpiceInterface():
             simulation_data = self.simulation_data
 
         # extract each data point and convert to real list
-        if factor != 1.0 or (complex_out==False and np.iscomplex(simulation_data[signal_name][0])):
+        if factor != 1.0 or (complex_out==False and np.iscomplex(simulation_data[signal_name.lower()][0])):
             data = []
-            for n in range(len(simulation_data[signal_name])):
+            for n in range(len(simulation_data[signal_name.lower()])):
 
                 if complex_out:
-                    data.append(factor*simulation_data[signal_name][n])
+                    data.append(factor*simulation_data[signal_name.lower()][n])
                 else:
-                    data.append(factor*np.real(simulation_data[signal_name][n]))
+                    data.append(factor*np.real(simulation_data[signal_name.lower()][n]))
 
             return data
         
         else:
-            return simulation_data[signal_name]
+            return simulation_data[signal_name.lower()]
 
 
     def get_signals(self, signal_names, factor=1.0):

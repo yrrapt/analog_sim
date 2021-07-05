@@ -3,7 +3,7 @@ import numpy as np
 from spyci import spyci
 from PySpice.Spice.NgSpice.Shared import NgSpiceShared
 
-from yaaade.spice.generic import GenericSpiceInterface
+from yaaade.spice.generic import GenericSpiceInterface, suppress_stdout_stderr
 
 
 class NgSpiceInterface(GenericSpiceInterface):
@@ -106,7 +106,8 @@ class NgSpiceInterface(GenericSpiceInterface):
 
             # destroy previous run data
             self.ngspice.destroy()
-            self.ngspice.exec_command("reset")
+            # self.ngspice.exec_command("reset")
+            # self.ngspice.reset()
 
             # load the netlist into the 
             if new_instance:
@@ -145,13 +146,13 @@ class NgSpiceInterface(GenericSpiceInterface):
                     print('-'*150)
                     print('\033[0m')
 
-        # read in the results of the simulation
-        if outputs:
-            self.simulation_data = {}
-            for output in outputs:
-                self.simulation_data[output] = spyci.load_raw("rundir/spiceinterface_temp_"+output+".raw")
-        else:
-            self.simulation_data = spyci.load_raw("rundir/spiceinterface_temp.raw")
+            # read in the results of the simulation
+            if outputs:
+                self.simulation_data = {}
+                for output in outputs:
+                    self.read_results("rundir/spiceinterface_temp_"+output+".raw", output)
+            else:
+                self.read_results("rundir/spiceinterface_temp.raw")
 
 
     def set_parameters(self, parameters):
@@ -184,36 +185,36 @@ class NgSpiceInterface(GenericSpiceInterface):
             print(log_information)
 
 
-    def get_signal(self, signal_name, factor=1.0, dataset=None, complex_out=False):
-        '''
-            Return a signal from the simulation results
-        '''
+    # def get_signal(self, signal_name, factor=1.0, dataset=None, complex_out=False):
+    #     '''
+    #         Return a signal from the simulation results
+    #     '''
 
-        # grab the simulation dataset requested
-        if dataset:
-            simulation_data = self.simulation_data[dataset]
-        else:
-            simulation_data = self.simulation_data
+    #     # grab the simulation dataset requested
+    #     if dataset:
+    #         simulation_data = self.simulation_data[dataset]
+    #     else:
+    #         simulation_data = self.simulation_data
 
-        # find where the node is in the data
-        index = None
-        for data_i, data_var in enumerate(simulation_data['vars']):
+    #     # find where the node is in the data
+    #     index = None
+    #     for data_i, data_var in enumerate(simulation_data['vars']):
 
-            if data_var['name'] == signal_name.lower():
-                index = data_i
+    #         if data_var['name'] == signal_name.lower():
+    #             index = data_i
 
-        assert index != None, 'The provided signal (%s) cannot be found in the simulation results' % signal_name
+    #     assert index != None, 'The provided signal (%s) cannot be found in the simulation results' % signal_name
 
-        # extract each data point and convert to real list
-        data = []
-        for n in range(len(simulation_data['values'])):
+    #     # extract each data point and convert to real list
+    #     data = []
+    #     for n in range(len(simulation_data['values'])):
 
-            if complex_out:
-                data.append(factor*simulation_data['values'][n][index])
-            else:
-                data.append(factor*np.real(simulation_data['values'][n][index]))
+    #         if complex_out:
+    #             data.append(factor*simulation_data['values'][n][index])
+    #         else:
+    #             data.append(factor*np.real(simulation_data['values'][n][index]))
 
-        return data
+    #     return data
 
 
     def set_sim_dc(self, variable, start, stop, increment):

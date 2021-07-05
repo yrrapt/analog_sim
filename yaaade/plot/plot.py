@@ -193,8 +193,8 @@ def plot_bode(object, node, linewidth=1.0, alpha=1.0, interactive=False, append=
                 object.axes[0].axvline(x=inverted_frequency/1e6, linewidth=1, color='k', ls="--", alpha=0.75)
 
             # append the gain margin text
-            if gain_margin:
-                object.text_gain_margin = object.axes[1].text(0.95, 0.95, "Gain Margin: %0.3f dB" % (gain_margin), horizontalalignment='right', verticalalignment='top', transform=object.axes[1].transAxes)
+            # if gain_margin:
+            #     object.text_gain_margin = object.axes[1].text(0.95, 0.95, "Gain Margin: %0.3f dB" % (gain_margin), horizontalalignment='right', verticalalignment='top', transform=object.axes[1].transAxes)
 
         else:
             object.text_phase_margin.set_text("Phase Margin: %0.3f (%0.3f/%0.3f) degrees" % (np.mean(object.phase_margin_arr), min(object.phase_margin_arr), max(object.phase_margin_arr)))
@@ -225,8 +225,8 @@ def plot_bode(object, node, linewidth=1.0, alpha=1.0, interactive=False, append=
             if phase_margin:
                 object.text_phase_margin = object.axes[1].text(0.95, 0.95, "Phase Margin: %0.3f degrees" % (phase_margin), horizontalalignment='right', verticalalignment='top', transform=object.axes[0].transAxes)
 
-        else:
-            object.text_gain_margin.set_text("Gain Margin: %0.3f (%0.3f/%0.3f) dB" % (np.mean(object.gain_margin_arr), min(object.gain_margin_arr), max(object.gain_margin_arr)))
+        # else:
+        #     object.text_gain_margin.set_text("Gain Margin: %0.3f (%0.3f/%0.3f) dB" % (np.mean(object.gain_margin_arr), min(object.gain_margin_arr), max(object.gain_margin_arr)))
 
         # append to existing plot?
         if display:

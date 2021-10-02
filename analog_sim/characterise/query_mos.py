@@ -1,4 +1,4 @@
-from yaaade.characterise.mos import QueryMos
+from analog_sim.characterise.mos import QueryMos
 
 query_obj = QueryMos('results/nmos_1p5.hdf5')
 

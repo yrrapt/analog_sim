@@ -203,3 +203,78 @@ def measure_noise(frequency=None, noise=None):
 
     return thermal[0], corner_frequency, flicker_factor
 
+
+def read_clocked_data(object, clock, data, edge='rising', binary=True):
+    '''
+        Given a signal and a clock detect find the value on the clock edge
+    '''
+
+    # get the signals
+    clock_signal = object.get_signal(clock)[0]
+
+    # multiple signals can be provided
+    if type(data) == list:
+        data_signal = []
+        for signal in data:
+            data_signal.append(object.get_signal(signal)[0])
+    else:
+        data_signal = object.get_signal(data)[0]
+
+    # find the min/max of the clock signal
+    clock_min = min(clock_signal)
+    clock_max = max(clock_signal)
+    clock_threshold = 0.5*(clock_max - clock_min) + clock_min
+
+    # find the thresholds of the data signals
+    if type(data) == list:
+        data_threshold = []
+        for signal in data:
+            data_min = min(data_signal)
+            data_max = max(data_signal)
+            data_signal.append(0.5*(data_max - data_min) + data_min)
+    else:
+        data_min = min(data_signal)
+        data_max = max(data_signal)
+        data_threshold = 0.5*(data_max - data_min) + data_min
+
+    time = object.get_signal('time')[0]
+
+    # now find clock transitions and save output data
+    output_data = []
+    for n in range(1, len(clock_signal)):
+
+        # detect an edge
+        if edge == 'rising':
+            if (clock_signal[n-1] < clock_threshold) and (clock_signal[n] >= clock_threshold):
+                edge_detected = True
+            else:
+                edge_detected = False
+
+        else:
+            if (clock_signal[n-1] > clock_threshold) and (clock_signal[n] <= clock_threshold):
+                edge_detected = True
+            else:
+                edge_detected = False
+
+        # save the data
+        if edge_detected:
+
+            # multiple signals can be provided
+            if type(data_signal[0]) == list:
+                samples = []
+                for i, signal in enumerate(data_signal):
+                    if binary:
+                        samples.append(int(signal[n] > data_threshold[i]))
+                    else:
+                        samples.append(signal[n])
+                output_data.append(samples)
+
+            # or a signalur signal
+            else:
+                if binary:
+                    output_data.append(int(data_signal[n] > data_threshold))
+                else:
+                    output_data.append(data_signal[n])
+
+    return output_data
+

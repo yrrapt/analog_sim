@@ -64,19 +64,8 @@ class XyceInterface(GenericSpiceInterface):
         if initial_step < 0:
             initial_step = final_time/1000
 
-        # form the voltage pulse line
+        # form the transient simultion line
         line  = '.tran %s %s' % (self.unit_format(initial_step), self.unit_format(final_time))
         return line
-
-
-    def netlist_library(self, library, corner):
-        '''
-            Include a library with a corner specification
-        '''
-
-        # form the voltage pulse line
-        line  = '.lib %s %s' % (library, corner)
-        return line
-
 
 

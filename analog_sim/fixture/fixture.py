@@ -108,7 +108,6 @@ class Fixture():
 
         self.simulation = simulation
 
-
     
     def write_netlist(self):
         '''
@@ -159,69 +158,9 @@ class Fixture():
         netlist += self.simulation.write_netlist(self.analog_sim_obj)
         netlist += '\n'
 
+        # write netlist to file
+        self.analog_sim_obj.write_netlist()
         
-        # # simulation options
-        # netlist += '*** Simulation options\n\n'
-        # for option in self.options:
-
-        #     netlist += '* Option: %s\n' % option
-        #     netlist += self.analog_sim_obj.self.options[option].write_netlist()
-        #     netlist += '\n'
-        
-
-
-
-
-        # # write the DUT
-        # netlist += '*** DUT definition\n'
-        # netlist += self.dut_cell['netlist']
-        # netlist += '\n'
-
-        # netlist += '*** DUT instance\n'
-        # netlist += 'Xdut_' + self.dut_cell['name'] + ' '
-        # for pin in self.dut_cell['pin_list']:
-        #     netlist += pin + ' '
-        # netlist += self.dut_cell['name']
-        # netlist += '\n\n'
-
-
-        # # write the dc voltage sources
-        # if len(self.elements_supplies) > 0:
-        #     netlist += '*** Supply voltages\n'
-        # for supply in self.elements_supplies:
-        #     netlist += self.analog_sim_obj.netlist_dc_voltage(self.elements_supplies[supply]['range'][1], supply)
-        #     netlist += '\n'
-        
-
-
-        # # write the clock sources
-        # if len(self.elements_clocks) > 0:
-        #     netlist += '*** Clocks\n'
-        # for clock in self.elements_clocks:
-
-        #     if type(self.elements_clocks[clock]['voltage']) == str:
-        #         voltage = 
-        #     else:
-        #         voltage = self.elements_clocks[clock]['voltage']
-
-        #     netlist += self.analog_sim_obj.netlist_clock_voltage(   name      = clock,
-        #                                                         frequency = self.elements_clocks[clock]['frequency'],
-        #                                                         voltage   = voltage)
-        #     netlist += '\n'
-
-
-        # print(self.analog_sim_obj.netlist_clock_voltage(voltage   = 1.8, 
-        #                                             frequency = 1e6, 
-        #                                             rise_fall = 10e-12, 
-        #                                             name      = 'test'))
-
-
-        # write the netlist to file
-        netlist_path = self.analog_sim_obj.run_dir + '/' + self.analog_sim_obj.temp_netlist
-        with open(netlist_path, 'w') as file:
-            file.write(netlist)
-        
-
     
     def run_simulation(self):
         '''

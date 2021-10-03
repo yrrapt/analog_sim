@@ -14,6 +14,24 @@ import matplotlib.ticker
 import matplotlib
 from matplotlib.ticker import FuncFormatter
 
+def create_sim_object(simulator: str):
+    """
+        Create the specified simulator object and return
+    """
+
+    if simulator == 'ngspice':
+        from analog_sim.spice.ngspice import NgSpiceInterface
+        analog_sim_obj = NgSpiceInterface()
+    elif simulator == 'xyce':
+        from analog_sim.spice.xyce import XyceInterface
+        analog_sim_obj = XyceInterface()
+
+    elif simulator == 'spectre':
+        from analog_sim.spice.spectre import SpectreInterface
+        analog_sim_obj = SpectreInterface()
+
+    return analog_sim_obj
+
 
 class GenericSpiceInterface():
     '''
@@ -29,6 +47,7 @@ class GenericSpiceInterface():
     run_dir      = '_rundir'
     temp_netlist = 'netlist.spice'
     temp_result  = 'results.raw'
+    temp_log     = 'simulation.log'
 
     result_type  = 'binary'
 
@@ -43,6 +62,21 @@ class GenericSpiceInterface():
         # if provided read in the base netlist
         if netlist_path:
             self.read_netlist_file(netlist_path)
+
+
+    def write_netlist(self, netlist):
+        '''
+            Write the netlist to file
+        '''
+
+        # create the run directory if it doesn't already exist
+        if not os.path.exists(self.run_dir):
+            os.makedirs(self.run_dir)
+
+        # write the netlist to file
+        netlist_path = self.run_dir + '/' + self.temp_netlist
+        with open(netlist_path, 'w') as file:
+            file.write(netlist)
 
 
     def read_netlist_file(self, netlist_path):
@@ -81,7 +115,8 @@ class GenericSpiceInterface():
             Read an ASCII raw results file
         '''
 
-        raw_data = spyci.load_raw(netlist)
+        raw_path = self.run_dir + '/' + self.temp_result
+        raw_data = spyci.load_raw(raw_path)
         simulation_data = {}
 
         # pull out the data from the raw format into a nicer dictionary
@@ -272,12 +307,73 @@ class GenericSpiceInterface():
 
         raise NotImplementedError('This needs to be implemented in a simulator specific function')
 
-    def netlist_dc_voltage(self, name, voltage, negative='0'):
+
+    def netlist_voltage_dc(self, name, voltage, negative='0'):
         '''
             Write a netlist line for a DC voltage source
         '''
 
         return 'V' + name + ' ' + name + ' ' + negative + ' ' + ('%f' % voltage)
+
+
+    def netlist_library(self, library, corner):
+        '''
+            Include a library with a corner specification
+        '''
+
+        # form the library include line
+        line  = '.lib %s %s' % (library, corner)
+        return line
+
+
+    def netlist_include(self, file):
+        '''
+            Include a file
+        '''
+
+        # form the include line
+        line  = '.include %s' % file
+        return line
+
+
+    def netlist_comment(self, comment):
+        '''
+            Add a comment
+        '''
+
+        # form the include line
+        line  = '* %s' % comment
+        return line
+
+
+    def netlist_title(self, title):
+        '''
+            Add a title
+        '''
+
+        # form the include line
+        line  = '.title %s' % title
+        return line
+
+
+    def netlist_capacitor(self, name, positive_net, capacitance, negative_net='0'):
+        '''
+            Create a capacitor instance
+        '''
+
+        # form the include line
+        line  = 'C%s %s %s %s' % (name, positive_net, negative_net, self.unit_format(capacitance))
+        return line
+
+
+    def netlist_end(self):
+        '''
+            Create an end statmenet
+        '''
+
+        # form the include line
+        line  = '.end'
+        return line
 
 
     def unit_format(self, value):

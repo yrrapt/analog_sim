@@ -159,7 +159,7 @@ class Fixture():
         netlist += '\n'
 
         # write netlist to file
-        self.analog_sim_obj.write_netlist()
+        self.analog_sim_obj.write_netlist(netlist)
         
     
     def run_simulation(self):

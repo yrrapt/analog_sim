@@ -314,6 +314,40 @@ class GenericSpiceInterface():
         '''
 
         return 'V' + name + ' ' + name + ' ' + negative + ' ' + ('%f' % voltage)
+        raise NotImplementedError('This needs to be implemented in a simulator specific function')
+
+
+    def netlist_current_pulse(self, name, value0, value1, 
+                                    delay=None, 
+                                    rise_time=None, 
+                                    fall_time=None, 
+                                    pulse_width=None, 
+                                    period=None, 
+                                    negative='0'):
+        '''
+            Write a netlist line for a pulse current source
+        '''
+
+        string  = 'I' + name + ' ' + name + ' ' + negative + ' pulse( ' 
+        string += '%s ' % self.unit_format(value0)
+        string += '%s ' % self.unit_format(value1)
+        
+        if delay != None:
+            string += '%s ' % self.unit_format(delay)
+
+            if delay != None:
+                string += '%s ' % self.unit_format(rise_time)
+        
+                if fall_time != None:
+                    string += '%s ' % self.unit_format(fall_time)
+            
+                    if pulse_width != None:
+                        string += '%s ' % self.unit_format(pulse_width)
+                    
+                        if period != None:
+                            string += '%s ' % self.unit_format(period)
+        string += ')'
+        return string
 
 
     def netlist_library(self, library, corner):
@@ -399,3 +433,7 @@ class GenericSpiceInterface():
             return '%fm' % (value / 1e-3)
         else:
             return '%f' % value
+
+
+
+

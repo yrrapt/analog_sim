@@ -44,5 +44,5 @@ class PowerDomain():
             Generate the netlist instantiation for the power supply
         '''
 
-        return analog_sim_obj.netlist_dc_voltage(name      = self.name,
-                                             voltage   = self.current_voltage)
+        return analog_sim_obj.netlist_voltage_dc(name      = self.name,
+                                                 voltage   = self.current_voltage)

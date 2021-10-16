@@ -13,7 +13,7 @@ class Fixture():
 
     netlist_path = '_rundir/netlist.spice'
 
-    def __init__(self, cell_name):
+    def __init__(self, cell_name, library_name):
 
         # internal test items
         self.includes = []
@@ -23,7 +23,7 @@ class Fixture():
         self.simulation = None
 
         # generate the cell netlist
-        netlist = xschem.generate_cell(library='stdcell', cell='dff_SEUT-B')
+        netlist = xschem.generate_cell(library=library_name, cell=cell_name)
         netlist = netlist.split('** flattened .save nodes')[0]
         self.add_component( DUTComponent(   name            = cell_name,
                                             netlist         = netlist))

@@ -112,3 +112,43 @@ class BipolarComponent(FixtureComponent):
                                                 model    = self.model,
                                                 pin_nets = self.pin_nets,
                                                 m        = self.m)
+
+
+class OpampComponent(FixtureComponent):
+    '''
+        An opamp fixture component. 
+    '''
+
+    def __init__(self, name, pos_net, neg_net, out_net, gain=1e6):
+
+        super().__init__()
+
+        self.type       = 'vccs'
+        self.name       = name
+        self.pos_net    = pos_net
+        self.neg_net    = neg_net
+        self.out_net    = out_net
+        self.gain       = gain
+
+
+    def write_netlist(self, analog_sim_obj):
+        '''
+            Generate the netlist instantiation for the component
+        '''
+
+        string = ''
+        if type(self.out_net) == list:
+            for current_out_net in self.out_net:
+                string = analog_sim_obj.netlist_vccs(   name    = self.name+'_'+current_out_net, 
+                                                        pos_net = self.pos_net,
+                                                        neg_net = self.neg_net,
+                                                        out_net = current_out_net,
+                                                        gain    = self.gain) + '\n'
+
+        else:
+            string = analog_sim_obj.netlist_vccs(   name    = self.name, 
+                                                    pos_net = self.pos_net,
+                                                    neg_net = self.neg_net,
+                                                    out_net = self.out_net,
+                                                    gain    = self.gain)
+        return string

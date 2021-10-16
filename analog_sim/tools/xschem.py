@@ -45,10 +45,14 @@ def generate_cell(library, cell):
         Generate the cell
     """
 
-    # netlist_generation(cell+'/schematic/'+cell, topcell=True)
-    # netlist_generation(cell+'/schematic/'+cell+'.sch', topcell=True)
-    netlist_generation(library+'/'+cell+'/schematic/'+cell+'.sch', topcell=True)
-    # netlist_generation(cell, topcell=True)
+    # generate the cell location string
+    string = ''
+    if library != '':
+        string += library+'/'
+    string += cell+'/schematic/'+cell+'.sch'
+
+    # generate the cell
+    netlist_generation(string, topcell=True)
 
     return open(os.environ['HOME']+'/.xschem/simulations/'+cell+'.spice', "r").read()
     

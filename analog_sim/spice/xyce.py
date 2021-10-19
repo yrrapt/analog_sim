@@ -69,3 +69,33 @@ class XyceInterface(GenericSpiceInterface):
         return line
 
 
+    def netlist_vccs(self, name, in_pos, in_neg, out_pos, out_neg, gain):
+        '''
+            Create a Voltage Controlled Current Source
+        '''
+
+        # form the transient simultion line
+        line  = 'G%s %s %s %s %s %s' % (name, out_neg, out_pos, in_pos, in_neg, self.unit_format(gain))
+        return line
+
+
+    def netlist_behavioural_source(self, name, pos_net, neg_net, output_type, expression):
+        '''
+            Create a Behavioural Source
+        '''
+
+        line  = 'B%s %s %s ' % (name, pos_net, neg_net)
+
+
+        if output_type == 'voltage':
+            line += 'V={ %s }' % expression
+
+        elif output_type == 'current':
+            line += 'I={ %s }' % expression
+
+        else:
+            assert False, 'Unsupported output type specified: %s' % output_type
+        
+        return line
+
+

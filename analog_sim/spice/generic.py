@@ -99,23 +99,27 @@ class GenericSpiceInterface():
         raise NotImplementedError('This needs to be implemented in a simulator specific function')
 
 
-    def read_results(self, dataset=None):
+    def read_results(self, netlist=None, dataset=None):
         '''
             Read the simulation resutls from file
         '''
 
         if self.result_type == 'binary':
-            self.read_raw_binary(dataset)
+            self.read_raw_binary(netlist, dataset)
         else:
-            self.read_raw_ascii(dataset)
+            self.read_raw_ascii(netlist, dataset)
 
 
-    def read_raw_ascii(self, dataset):
+    def read_raw_ascii(self, netlist, dataset):
         '''
             Read an ASCII raw results file
         '''
 
-        raw_path = self.run_dir + '/' + self.temp_result
+        if netlist == None:
+            raw_path = self.run_dir + '/' + self.temp_result
+        else:
+            raw_path = netlist
+
         raw_data = spyci.load_raw(raw_path)
         simulation_data = {}
 
@@ -134,7 +138,7 @@ class GenericSpiceInterface():
             self.simulation_data[dataset] = simulation_data
 
 
-    def read_raw_binary(self, dataset):
+    def read_raw_binary(self, netlist, dataset):
         '''
             Taken from: https://gist.github.com/snmishra/27dcc624b639c2626137
             Read ngspice binary raw files. Return tuple of the data, and the
@@ -163,8 +167,12 @@ class GenericSpiceInterface():
         #         1       v(out)  voltage
         #         2       v(in)   voltage
         # Binary:
-        fname = self.run_dir + '/' + self.temp_result
-        fp = open(fname, 'rb')
+        if netlist == None:
+            raw_path = self.run_dir + '/' + self.temp_result
+        else:
+            raw_path = netlist
+
+        fp = open(raw_path, 'rb')
         plot = {}
         count = 0
         arrs = []
@@ -234,13 +242,15 @@ class GenericSpiceInterface():
 
         # extract each data point and convert to real list
         if factor != 1.0 or (complex_out==False and np.iscomplex(simulation_data[signal_name.lower()]['data'][0])):
-            data = []
-            for n in range(len(simulation_data[signal_name.lower()])):
+            data = {'data' : [], 'units' : simulation_data[signal_name.lower()]['units']}
+            for n in range(len(simulation_data[signal_name.lower()]['data'])):
 
                 if complex_out:
-                    data.append(factor*simulation_data[signal_name.lower()][n])
+                    data['data'].append(factor*simulation_data[signal_name.lower()]['data'][n])
+
                 else:
-                    data.append(factor*np.real(simulation_data[signal_name.lower()][n]))
+                    # data.append(factor*np.real(simulation_data[signal_name.lower()]['data'][n]))
+                    data['data'].append(factor*np.real(simulation_data[signal_name.lower()]['data'][n]))
 
             return data['data'], data['units']
         
@@ -292,17 +302,18 @@ class GenericSpiceInterface():
             self.set_parameter(parameter[0], parameter[1])
 
 
-    def set_sim_dc(self, variable, start, stop, increment):
+
+    def netlist_sim_dcsweep(self, parameter, start, stop, increment):
         '''
-            Define a DC sweep simulation
+            Create a DC sweep simulation
         '''
 
-        raise NotImplementedError('This needs to be implemented in a simulator specific function')
+        return '.dc ' + parameter + ' ' + self.unit_format(start) + ' ' + self.unit_format(stop) + ' ' + self.unit_format(increment)
 
 
-    def set_sim_tran(self, stop, step, start_save=None):
+    def netlist_sim_tran(self, stop, step, start_save=None):
         '''
-            Define a DC sweep simulation
+            Create a DC sweep simulation
         '''
 
         raise NotImplementedError('This needs to be implemented in a simulator specific function')
@@ -314,7 +325,6 @@ class GenericSpiceInterface():
         '''
 
         return 'V' + name + ' ' + name + ' ' + negative + ' ' + ('%f' % voltage)
-        raise NotImplementedError('This needs to be implemented in a simulator specific function')
 
 
     def netlist_current_pulse(self, name, value0, value1, 
@@ -387,6 +397,26 @@ class GenericSpiceInterface():
 
         # form the include line
         line  = '.title %s' % title
+        return line
+
+
+    def netlist_initial_conditions(self, initial_conditions):
+        '''
+            Set initial conditions
+        '''
+
+        # form the include line
+        line  =  f""".ic {" ".join((f"v({net})={v}" for net, v in initial_conditions))}"""
+        return line
+
+
+    def netlist_node_set(self, node_set):
+        '''
+            Set node set
+        '''
+
+        # form the include line
+        line  =  f""".nodeset {" ".join((f"v({net})={v}" for net, v in node_set))}"""
         return line
 
 

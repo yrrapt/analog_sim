@@ -14,4 +14,4 @@ analog_sim_obj = GenericSpiceInterface()
 analog_sim_obj.read_results(sys.argv[1])
 
 # plot the results
-plot_bode(analog_sim_obj, 'v(ac)', linewidth=1, alpha=1)
+plot_bode(analog_sim_obj, 'v(ac)', linewidth=1, alpha=1, invert=True)

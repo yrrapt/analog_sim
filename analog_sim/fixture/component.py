@@ -87,6 +87,35 @@ class ClockComponent(FixtureComponent):
                                                 rise_fall = self.rise_fall)
 
 
+class BehaviouralSource(FixtureComponent):
+    '''
+        A behavioural source fixture component. 
+    '''
+
+    def __init__(self, name, pos_net, neg_net, output_type, expression):
+
+        super().__init__()
+
+        self.type        = 'behavioural source'
+        self.name        = name
+        self.pos_net     = pos_net
+        self.neg_net     = neg_net
+        self.output_type = output_type
+        self.expression  = expression
+
+
+    def write_netlist(self, analog_sim_obj):
+        '''
+            Generate the netlist instantiation for behavioural source
+        '''
+
+        return analog_sim_obj.netlist_behavioural_source(name        = self.name,
+                                                         pos_net     = self.pos_net,
+                                                         neg_net     = self.neg_net,
+                                                         output_type = self.output_type,
+                                                         expression  = self.expression)
+
+
 class BipolarComponent(FixtureComponent):
     '''
         A bipolar transistor fixture component. 
@@ -139,16 +168,18 @@ class OpampComponent(FixtureComponent):
         string = ''
         if type(self.out_net) == list:
             for current_out_net in self.out_net:
-                string = analog_sim_obj.netlist_vccs(   name    = self.name+'_'+current_out_net, 
-                                                        pos_net = self.pos_net,
-                                                        neg_net = self.neg_net,
-                                                        out_net = current_out_net,
+                string += analog_sim_obj.netlist_vccs(  name    = self.name+'_'+current_out_net, 
+                                                        in_pos  = self.pos_net,
+                                                        in_neg  = self.neg_net,
+                                                        out_pos = current_out_net,
+                                                        out_neg = '0',
                                                         gain    = self.gain) + '\n'
 
         else:
             string = analog_sim_obj.netlist_vccs(   name    = self.name, 
-                                                    pos_net = self.pos_net,
-                                                    neg_net = self.neg_net,
-                                                    out_net = self.out_net,
+                                                    in_pos  = self.pos_net,
+                                                    in_neg  = self.neg_net,
+                                                    out_pos = self.out_net,
+                                                    out_neg = '0',
                                                     gain    = self.gain)
         return string

@@ -130,8 +130,8 @@ def plot_bode(object, node, linewidth=1.0, alpha=1.0, interactive=False, append=
         matplotlib.use('Agg')
 
     # get the results
-    signal = object.get_signal(node, complex_out=True)
-    frequency = object.get_signal('frequency')
+    signal, units = object.get_signal(node, complex_out=True)
+    frequency, units = object.get_signal('frequency')
 
     # convert the complex rectangular signal representation to magnitude and phase
     gain = [20*np.log10(_) for _ in np.abs(signal)]
@@ -170,7 +170,7 @@ def plot_bode(object, node, linewidth=1.0, alpha=1.0, interactive=False, append=
 
             # define the scale format
             formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
-    
+
         # plot the gain
         object.axes[0].plot([_/1e6 for _ in frequency], gain, linewidth=linewidth, alpha=alpha, color='b')
 

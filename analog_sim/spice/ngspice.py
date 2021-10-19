@@ -112,16 +112,6 @@ class NgSpiceInterface(GenericSpiceInterface):
         return line
 
 
-    def netlist_initial_conditions(self, initial_conditions):
-        '''
-            Set initial conditions
-        '''
-
-        # form the include line
-        line  =  f""".ic {" ".join((f"v({net})={v}" for net, v in initial_conditions.items()))}"""
-        return line
-
-
     def netlist_control_block(self, control_block):
         '''
             Set a control block

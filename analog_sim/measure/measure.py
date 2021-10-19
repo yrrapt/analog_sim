@@ -93,8 +93,8 @@ def measure_phase_gain_margin(object, node, alert=True, invert=False):
     frequency = object.get_signal('frequency')
 
     # convert the complex rectangular signal representation to magnitude and phase
-    gain = [20*np.log10(_) for _ in np.abs(fb)]
-    phase = [_*180/np.pi for _ in np.unwrap(np.angle(fb))]
+    gain = [20*np.log10(_) for _ in np.abs(fb[0])]
+    phase = [_*180/np.pi for _ in np.unwrap(np.angle(fb[0]))]
 
     # invert the phase response
     if invert:
@@ -123,7 +123,7 @@ def measure_phase_gain_margin(object, node, alert=True, invert=False):
         gain_margin = None
 
     # warn user that margins are low
-    if alert:
+    if alert and hasattr(object, 'limits'):
         if phase_margin:
             if phase_margin < object.limits['phase_margin']:
                 print("WARNING: Phase margin is %0.3f degrees" % phase_margin)

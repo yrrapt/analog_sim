@@ -13,7 +13,7 @@ class Fixture():
 
     netlist_path = '_rundir/netlist.spice'
 
-    def __init__(self, cell_name, library_name):
+    def __init__(self, dut_schematic=''):
 
         # internal test items
         self.includes = []
@@ -21,12 +21,17 @@ class Fixture():
         self.components = {}
         self.options = {}
         self.simulation = None
+        self.initial_conditions = None
+        self.node_set = None
 
         # generate the cell netlist
-        netlist = xschem.generate_cell(library=library_name, cell=cell_name)
-        netlist = netlist.split('** flattened .save nodes')[0]
-        self.add_component( DUTComponent(   name            = cell_name,
-                                            netlist         = netlist))
+        if dut_schematic != '':
+            netlist = xschem.generate_cell(schematic=dut_schematic)
+            netlist = netlist.split('** flattened .save nodes')[0]
+
+            cell_name = dut_schematic.split('/')[-1].split('.')[0]
+            self.add_component( DUTComponent(   name            = cell_name,
+                                                netlist         = netlist))
         
         # save reference to the simulator object
         simulator = os.environ['SIMULATOR']
@@ -108,6 +113,22 @@ class Fixture():
 
         self.simulation = simulation
 
+
+    def set_initial_conditions(self, initial_conditions):
+        '''
+            Set the simulation initial conditions
+        '''
+
+        self.initial_conditions = initial_conditions
+
+
+    def set_node_set(self, node_set):
+        '''
+            Set the simulation node set
+        '''
+
+        self.node_set = node_set
+
     
     def write_netlist(self):
         '''
@@ -150,6 +171,16 @@ class Fixture():
             netlist += '* DUT: %s\n' % dut
             netlist += self.components['dut'][dut].write_netlist_instance(self.analog_sim_obj)
             netlist += '\n'
+
+        # set initial conditions
+        if self.initial_conditions != None:
+            netlist += self.analog_sim_obj.netlist_initial_conditions(self.initial_conditions)
+            netlist += '\n\n'
+
+        # set node set
+        if self.node_set != None:
+            netlist += self.analog_sim_obj.netlist_node_set(self.node_set)
+            netlist += '\n\n'
 
         # insert simulation instruction
         if self.simulation == None:

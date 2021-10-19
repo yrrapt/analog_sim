@@ -40,19 +40,14 @@ def netlist_generation(schematic, folder=None, topcell=False):
     return status
 
 
-def generate_cell(library, cell):
+def generate_cell(schematic):
     """
         Generate the cell
     """
 
-    # generate the cell location string
-    string = ''
-    if library != '':
-        string += library+'/'
-    string += cell+'/schematic/'+cell+'.sch'
-
     # generate the cell
-    netlist_generation(string, topcell=True)
+    netlist_generation(schematic, topcell=True)
 
+    cell = schematic.split('/')[-1].split('.')[0]
     return open(os.environ['HOME']+'/.xschem/simulations/'+cell+'.spice', "r").read()
     

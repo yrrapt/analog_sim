@@ -29,6 +29,8 @@ class XyceInterface(GenericSpiceInterface):
         process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
         output, error = process.communicate()
 
+        # read in the results
+        self.read_results("%s/%s" % (self.run_dir, self.temp_result))
 
 
     def netlist_clock_voltage(self, name, frequency, voltage, rise_fall=-1, negative='0', delay=0):
@@ -53,7 +55,15 @@ class XyceInterface(GenericSpiceInterface):
         return line
 
 
-    def netlist_sim_tran(self, final_time, initial_step=-1):
+    def netlist_voltage_pwl(self, name, voltage, negative='0', dc=0):
+        '''
+            Write a netlist line for a DC PWL source
+        '''
+
+        return 'V' + name + ' ' + name + ' ' + negative + ' pwl 0 %f ' % dc + ' ' + voltage
+
+
+    def netlist_sim_tran(self, final_time, initial_step=-1, use_intitial_conditions=False):
         '''
             Define a transient simulation
 
@@ -66,6 +76,10 @@ class XyceInterface(GenericSpiceInterface):
 
         # form the transient simultion line
         line  = '.tran %s %s' % (self.unit_format(initial_step), self.unit_format(final_time))
+
+        if use_intitial_conditions:
+            line += ' uic'
+
         return line
 
 
@@ -98,4 +112,13 @@ class XyceInterface(GenericSpiceInterface):
         
         return line
 
+
+    def netlist_temperature(self, temperature):
+        '''
+            Set the temperature
+        '''
+
+        # form the include line
+        line  = '.options device temp=%s' % temperature
+        return line
 

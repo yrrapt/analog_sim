@@ -406,7 +406,7 @@ class GenericSpiceInterface():
         '''
 
         # form the include line
-        line  =  f""".ic {" ".join((f"v({net})={v}" for net, v in initial_conditions))}"""
+        line  =  f""".ic {" ".join((f"v({key})={initial_conditions[key]}" for key in initial_conditions))}"""
         return line
 
 

@@ -21,6 +21,9 @@ def netlist_generation(schematic, folder=None, topcell=False):
     
     # ensure standard libraries are included in netlist
     tcl_command = 'xschem netlist\nxschem netlist\n'
+    if topcell:
+        tcl_command += 'set top_subckt 1\n'
+
     with open('/tmp/netlist.tcl','w') as file:
         file.write(tcl_command)
     command += ["--script"]

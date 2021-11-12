@@ -4,17 +4,11 @@ import logging
 
 log = logging.getLogger(__name__)
 
-def run_drc():
+
+def run_drc(gds_file, cell, rules_file, results_file='/tmp/analog_sim/klayout_drc_results.xml', waivers=[]):
     """
         Run DRC in KLayout
     """
-
-    # TODO - hardcode for now
-    gds_file     = "/home/tom/repositories/integratedspace/root/env/tech_xt018/stdcell/layout/stdcell.gds"
-    cell         = "INVX2"
-    rules_file   = "/home/tom/repositories/integratedspace/root/env/tech_xt018/drc/xt018.drc"
-    results_file = "/home/tom/repositories/integratedspace/root/env/analog_sim/_devel/results_drc.txt"
-    waiver_list = ['B1DT']
 
     # run the simulation through command line
     bash_command = "klayout -b -r %s -rd input=%s -rd cellname=%s -rd report=%s " % (rules_file, gds_file, cell, results_file)
@@ -35,11 +29,10 @@ def run_drc():
         code = results['report-database']['items'][error]['category'].split(' ')[0].replace("'", "")
 
         # sort into waived and unwaived errors
-        if code in waiver_list:
+        if code in waivers:
             errors['waived'].append(results['report-database']['items'][error])
         else:
             errors['unwaived'].append(results['report-database']['items'][error])
-
 
     # print out the errors
     if len(errors['unwaived']) > 0:
@@ -50,3 +43,40 @@ def run_drc():
     
     else:
         log.info('No DRC Errors Found.')
+
+    return not(len(errors['unwaived']) > 0)
+
+
+def run_lvs(gds_file, cell, source_netlist, rules_file, 
+            extracted_netlist='/tmp/analog_sim/klayout_lvs_netlist.spice', 
+            lvs_database='/tmp/analog_sim/klayout_lvs_results.lvsdb',
+            log_file='/tmp/analog_sim/klayout_lvs_log'):
+    """
+        Run LVS in KLayout
+    """
+
+
+    # klayout -b -r /home/tom/repositories/integratedspace/root/env/tech_xt018/lvs/xt018.lvs -rd source_netlist=/home/tom/.xschem/simulations/INVX2.spice -rd lvs_database=/tmp/analog_sim/lvs_database.lvsdb -rd extracted_netlist=/tmp/analog_sim/lvs_netlist.spice -rd input=/home/tom/repositories/integratedspace/root/env/tech_xt018/stdcell/layout/stdcell.gds -rd cellname=INVX2
+
+    # run the simulation through command line
+    bash_command  = "klayout -b "
+    bash_command += "-r %s "                    % rules_file
+    bash_command += "-rd source_netlist=%s "    % source_netlist
+    bash_command += "-rd lvs_database=%s "      % lvs_database
+    bash_command += "-rd extracted_netlist=%s " % extracted_netlist
+    bash_command += "-rd log_file=%s "          % log_file
+    bash_command += "-rd input=%s "             % gds_file
+    bash_command += "-rd cellname=%s"           % cell
+
+    # begin theL LVS run
+    log.info('Beginning KLayout LVS run with settings: %s.' % bash_command)
+    process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+    log.info('KLayout LVS run complete.')
+
+    # read the results
+    result = open(log_file,'r').read()
+    if result.startswith("true"):
+        return True
+    else:
+        return False

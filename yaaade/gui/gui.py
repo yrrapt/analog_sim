@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets, uic
 from pyqtgraph import PlotWidget
 import pyqtgraph as pg
 import sys
-from analog_sim.characterise.mos import QueryMos
+from yaaade.characterise.mos import QueryMos
 
 
 class MainWindow(QtWidgets.QMainWindow):

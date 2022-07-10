@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from analog_sim.measure.measure import Measure
+from yaaade.measure.measure import Measure
 
 class CharacteriseMos():
     '''

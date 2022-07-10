@@ -1,6 +1,6 @@
 import yaml
 
-from analog_sim.characterise.mos import CharacteriseMos
+from yaaade.characterise.mos import CharacteriseMos
 
 
 # create the object

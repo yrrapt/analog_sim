@@ -4,13 +4,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="analog_sim",
+    name="yaaade",
     version="0.0.1",
     author="Thomas Parry",
     description="A collection of analogue design tools",
-    url="https://github.com/yrrapt/analog_sim",
+    url="https://github.com/yrrapt/yaaade",
     project_urls={
-        "Bug Tracker": "https://github.com/yrrapt/analog_sim/issues",
+        "Bug Tracker": "https://github.com/yrrapt/yaaade/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",

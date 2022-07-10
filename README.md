@@ -1,3 +1,2 @@
-# Analog Simulation Toolbox
-
-A collection of tools intended to allow abstraction of analog circuit simulation to improve productivity and automation.
+# spice_interface
+A Spice simulation interface

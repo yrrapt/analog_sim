@@ -5,7 +5,7 @@ import matplotlib.ticker
 import matplotlib
 from matplotlib.ticker import FuncFormatter
 
-from analog_sim.measure.measure import *
+from yaaade.measure.measure import *
 
 
 def plot_dc_sweep(object, sweepvar, node, number_plots=1, linewidth=1.0, alpha=1.0, 
@@ -130,8 +130,8 @@ def plot_bode(object, node, linewidth=1.0, alpha=1.0, interactive=False, append=
         matplotlib.use('Agg')
 
     # get the results
-    signal, units = object.get_signal(node, complex_out=True)
-    frequency, units = object.get_signal('frequency')
+    signal = object.get_signal(node, complex_out=True)
+    frequency = object.get_signal('frequency')
 
     # convert the complex rectangular signal representation to magnitude and phase
     gain = [20*np.log10(_) for _ in np.abs(signal)]
@@ -170,7 +170,7 @@ def plot_bode(object, node, linewidth=1.0, alpha=1.0, interactive=False, append=
 
             # define the scale format
             formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
-
+    
         # plot the gain
         object.axes[0].plot([_/1e6 for _ in frequency], gain, linewidth=linewidth, alpha=alpha, color='b')
 
@@ -319,62 +319,6 @@ def plot_ac(object, node, linewidth=1.0, alpha=1.0, interactive=False, append=Fa
         else:
             object.text_dc_gain.set_text("DC Gain: %0.3f (%0.3f/%0.3f) dB" % (np.mean(object.dc_gain_arr), min(object.dc_gain_arr), max(object.dc_gain_arr)))
             object.text_unity_bandwidth.set_text("Unity Bandwidth: %0.3f (%0.3f/%0.3f) MHz" % (np.mean(object.unity_bandwidth_arr)/1e6, min(object.unity_bandwidth_arr)/1e6, max(object.unity_bandwidth_arr)/1e6))
-
-        # append to existing plot?
-        if display:
-            if append:
-                plt.draw()
-                plt.pause(0.001)
-            else:
-                plt.draw()
-                plt.pause(0.001)
-                plt.show()
-
-        # save the plot to file
-        if save:
-            object.fig.savefig(save)
-
-    object.plot_init=True
-
-
-def plot_tran(object, signals, linewidth=1.0, alpha=1.0, interactive=False, append=False, 
-                title=None, display=True, save=False, invert=False):
-    '''
-        Plot transient signal(s)
-    '''
-
-    if not display:
-        matplotlib.use('Agg')
-
-
-    data = object.get_signals(signals, complex_out=True)
-    time,   time_units     = object.get_signal('time')
-
-    # create the plots
-    with plt.style.context('seaborn-notebook'):
-        
-        # setup subplots
-        if not object.plot_init:
-            object.fig, object.axes = plt.subplots(sharex='all', ncols=1, nrows=len(signals), 
-                                        num='Transient Plot', squeeze=True)
-
-            # set title
-            if title:
-                object.fig.suptitle(title)
-
-            # if displaying the plot live update 
-            if interactive and display:
-                plt.ion()
-                plt.show()
-
-            # define the scale format
-            formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
-    
-        # plot the signal(s)
-        for subplot, signal in enumerate(data):
-            object.axes[subplot].plot(time, data[signal][0], linewidth=linewidth, alpha=alpha, color='b')
-            object.axes[subplot].set_ylabel(signal + ' ('+ data[signal][1].capitalize() + ')')
-            # object.axes[subplot].set_title(signal)
 
         # append to existing plot?
         if display:
